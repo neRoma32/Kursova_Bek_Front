@@ -44,3 +44,7 @@ class RewriteRequest(BaseModel):
 
 class SpellCheckRequest(BaseModel):
     text: str
+
+class TextRequest(BaseModel):
+    text: str
+    custom_title: Optional[str] = Field(None, description="Власний заголовок. Якщо пусте - придумає AI.")

@@ -38,4 +38,14 @@ class AIService:
         except Exception as e:
             return f"Помилка AI: {str(e)}"
 
+    async def generate_title(self, text: str) -> str:
+        # промт для заголовка
+        prompt = (
+            f"Придумай короткий, влучний заголовок (максимум 6 слів) для цього тексту. "
+            f"Заголовок має бути тією ж мовою, що і текст. "
+            f"Не використовуй лапки та зайві слова. Текст:\n\n{text[:1000]}"
+        )
+        # беремо перші 1000 символів
+        return await self._generate(prompt)
+
 ai_service = AIService()
