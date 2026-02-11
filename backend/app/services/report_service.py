@@ -16,7 +16,6 @@ class ReportService:
 
         #заголовок
         pdf.set_font("Helvetica", style="B", size=16)
-        # Виводимо вже очищений заголовок (safe_title)
         pdf.cell(0, 10, text=safe_title, new_x="LMARGIN", new_y="NEXT", align="C")
         pdf.ln(10)
 

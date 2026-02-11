@@ -1,20 +1,17 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
-# Деталі конкретної помилки
 class Mistake(BaseModel):
     message: str
     suggestions: List[str]
     offset: int
     length: int
 
-# Нова структура для результату перевірки
 class SpellCheckResult(BaseModel):
     corrected: str
     style_improved: str
     mistakes: List[Mistake]
 
-# Основна відповідь для ендпоінту /check
 class DetailedSpellCheckResponse(BaseModel):
     original_text: str
     result: SpellCheckResult
@@ -22,7 +19,6 @@ class DetailedSpellCheckResponse(BaseModel):
     char_count: int
     word_count: int
 
-# Решта схем без змін
 class TextResponse(BaseModel):
     original_text: str
     processed_text: str
@@ -48,3 +44,10 @@ class SpellCheckRequest(BaseModel):
 class TextRequest(BaseModel):
     text: str
     custom_title: Optional[str] = Field(None, description="Власний заголовок. Якщо пусте - придумає AI.")
+
+class FileAnalysisResponse(BaseModel):
+    filename: str
+    char_count: int
+    word_count: int
+    summary: str
+    spellcheck: SpellCheckResult
