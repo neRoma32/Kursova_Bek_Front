@@ -23,7 +23,7 @@ class ReportService:
         pdf.cell(0, 10, text=f"Characters: {len(text)}", new_x="LMARGIN", new_y="NEXT")
         pdf.cell(0, 10, text=f"Words: {len(text.split())}", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(10)
-
+    
         pdf.set_font("Helvetica", size=11)
         pdf.multi_cell(0, 10, text=safe_text)
 

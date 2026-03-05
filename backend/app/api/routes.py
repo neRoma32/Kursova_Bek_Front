@@ -228,3 +228,5 @@ async def analyze_word_file(file: UploadFile = File(...)):
             os.remove(temp_path)
 
 
+
+

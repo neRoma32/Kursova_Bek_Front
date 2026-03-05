@@ -14,7 +14,7 @@ class WordReportService:
         document.add_paragraph(f"Characters: {len(text)}")
         document.add_paragraph(f"Words: {len(text.split())}")
 
-        document.add_paragraph("")  # порожній рядок
+        document.add_paragraph("")
 
         # Основний текст
         document.add_paragraph(text)
