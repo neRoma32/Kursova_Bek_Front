@@ -6,3 +6,5 @@ google-generativeai
 requests
 python-docx
 python-multipart
+fpdf
+language_tool_python
