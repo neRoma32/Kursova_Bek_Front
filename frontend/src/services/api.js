@@ -8,6 +8,10 @@ export const api = {
         const response = await axios.post(`${API_URL}/check`, { text });
         return response.data;
     },
+    fastCheck: async (text) => {
+        const response = await axios.post(`${API_URL}/check/fast`, { text });
+        return response.data;
+    },
     translate: async (text, targetLanguage = 'en') => {
         const response = await axios.post(`${API_URL}/translate`, { text, target_language: targetLanguage });
         return response.data;
@@ -22,6 +26,22 @@ export const api = {
     },
     rewrite: async (text) => {
         const response = await axios.post(`${API_URL}/rewrite`, { text });
+        return response.data;
+    },
+    getReportPdf: async (text) => {
+        const response = await axios.post(`${API_URL}/report/pdf`, { text }, { responseType: 'blob' });
+        return response.data;
+    },
+    getReportWord: async (text) => {
+        const response = await axios.post(`${API_URL}/report/word`, { text }, { responseType: 'blob' });
+        return response.data;
+    },
+    analyzeFile: async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await axios.post(`${API_URL}/analyze/file`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         return response.data;
     }
 };

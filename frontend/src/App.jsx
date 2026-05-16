@@ -1,63 +1,103 @@
-import { Box, Grid } from '@mui/material';
+import { Box, Grid, Typography } from '@mui/material';
+import { useState } from 'react';
 import { Header } from './components/layout/Header';
+import { Sidebar } from './components/layout/Sidebar';
 import { EditorArea } from './components/editor/EditorArea';
-import { ActionButtons } from './components/editor/ActionButtons';
 import { ResultArea } from './components/result/ResultArea';
+import { MistakesPanel } from './components/result/MistakesPanel';
 import { useTextAnalyzer } from './hooks/useTextAnalyzer';
 
 function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   const {
     inputText,
     setInputText,
     outputText,
+    setOutputText,
     isLoading,
     getStats,
     handleClear,
     handleCheck,
-    handleAction
+    handleAction,
+    handleFileUploadAction,
+    isTranslationMode,
+    setIsTranslationMode,
+    outputLang,
+    setOutputLang,
+    mistakes,
+    isAssistantOpen,
+    setIsAssistantOpen,
+    applyCorrection
   } = useTextAnalyzer();
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Header />
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f5f5f5' }}>
+      <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <Box sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden' }}>
+        {/* Бокова панель */}
+        {isSidebarOpen && (
+          <Box sx={{ width: '280px', flexShrink: 0, overflowY: 'auto' }}>
+            <Sidebar 
+              isLoading={isLoading}
+              disabled={!inputText}
+              onCheck={handleCheck}
+              onAction={handleAction}
+              isTranslationMode={isTranslationMode}
+              setIsTranslationMode={setIsTranslationMode}
+              isAssistantOpen={isAssistantOpen}
+              setIsAssistantOpen={setIsAssistantOpen}
+            />
+          </Box>
+        )}
 
-      <Box
-        sx={{
-          flexGrow: 1,
-          py: { xs: 2, md: 4 },
-          px: { xs: 2, md: 4 },
-        }}
-      >
-        <Box sx={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
-          <Grid container spacing={3} alignItems="stretch">
-            <Grid item xs={12} md={4.5} sx={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Основна частина */}
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 4 }}>
+        <Typography variant="h4" color="warning.main" gutterBottom sx={{ fontWeight: 'bold' }}>
+          Аналізатор тексту
+        </Typography>
+
+        <Box sx={{ flexGrow: 1, mt: 2 }}>
+          <Box sx={{ display: 'flex', gap: 4, height: '100%', flexDirection: { xs: 'column', md: 'row' } }}>
+            {/* Ліва колонка - Вхідний текст */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               <EditorArea
                 text={inputText}
                 setText={setInputText}
                 stats={getStats(inputText)}
                 onClear={handleClear}
                 isLoading={isLoading}
+                onFileUploadAction={handleFileUploadAction}
+                mistakes={mistakes}
+                applyCorrection={applyCorrection}
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={3} sx={{ display: 'flex', flexDirection: 'column' }}>
-              <ActionButtons
-                isLoading={isLoading}
-                disabled={!inputText}
-                onCheck={handleCheck}
-                onAction={handleAction}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4.5} sx={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Права колонка - Результат */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               <ResultArea
                 text={outputText}
+                setText={setOutputText}
                 stats={getStats(outputText)}
                 isLoading={isLoading}
+                outputLang={outputLang}
+                setOutputLang={setOutputLang}
               />
-            </Grid>
-          </Grid>
+            </Box>
+
+            {/* Третя колонка - Асистент (Панель помилок) */}
+            {isAssistantOpen && (
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, maxWidth: { md: '300px' } }}>
+                <MistakesPanel 
+                  mistakes={mistakes} 
+                  applyCorrection={applyCorrection}
+                  onClose={() => setIsAssistantOpen(false)}
+                />
+              </Box>
+            )}
+          </Box>
         </Box>
+      </Box>
       </Box>
     </Box>
   );

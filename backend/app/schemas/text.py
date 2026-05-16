@@ -19,6 +19,10 @@ class DetailedSpellCheckResponse(BaseModel):
     char_count: int
     word_count: int
 
+class FastSpellCheckResponse(BaseModel):
+    mistakes: List[Mistake]
+    corrected_text: str
+
 class TextResponse(BaseModel):
     original_text: str
     processed_text: str
@@ -47,6 +51,7 @@ class TextRequest(BaseModel):
 
 class FileAnalysisResponse(BaseModel):
     filename: str
+    original_text: str
     char_count: int
     word_count: int
     summary: str

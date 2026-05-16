@@ -10,6 +10,7 @@ import logging
 from app.schemas.text import (
     TextResponse,
     DetailedSpellCheckResponse,
+    FastSpellCheckResponse,
     SpellCheckResult,
     TranslateRequest,
     ModifyRequest,
@@ -75,6 +76,21 @@ async def check_grammar(request: SpellCheckRequest):
     except Exception as e:
         logger.exception("Spell check failed")
         raise HTTPException(status_code=500, detail="Spell check error")
+
+
+@router.post("/check/fast", response_model=FastSpellCheckResponse)
+async def check_grammar_fast(request: SpellCheckRequest):
+    try:
+        corrected_text, mistakes_list = spell_service.get_detailed_stats(request.text)
+
+        return FastSpellCheckResponse(
+            mistakes=mistakes_list,
+            corrected_text=corrected_text
+        )
+
+    except Exception as e:
+        logger.exception("Fast spell check failed")
+        raise HTTPException(status_code=500, detail="Fast spell check error")
 
 
 @router.post("/translate", response_model=TextResponse)
@@ -181,10 +197,10 @@ async def get_word_report(
         )
     
     
-@router.post("/analyze/word", response_model=FileAnalysisResponse)
-async def analyze_word_file(file: UploadFile = File(...)):
-    if not file.filename.endswith(".docx"):
-        raise HTTPException(status_code=400, detail="Only .docx files are supported")
+@router.post("/analyze/file", response_model=FileAnalysisResponse)
+async def analyze_file(file: UploadFile = File(...)):
+    if not (file.filename.endswith(".docx") or file.filename.endswith(".pdf")):
+        raise HTTPException(status_code=400, detail="Only .docx and .pdf files are supported")
 
     temp_dir = "temp_uploads"
     os.makedirs(temp_dir, exist_ok=True)
@@ -200,7 +216,10 @@ async def analyze_word_file(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, buffer)
 
         # читаємо текст
-        text = file_reader_service.read_docx(temp_path)
+        if file.filename.endswith(".docx"):
+            text = file_reader_service.read_docx(temp_path)
+        else:
+            text = file_reader_service.read_pdf(temp_path)
 
         if not text.strip():
             raise HTTPException(status_code=400, detail="Document is empty")
@@ -213,6 +232,7 @@ async def analyze_word_file(file: UploadFile = File(...)):
 
         return FileAnalysisResponse(
             filename=file.filename,
+            original_text=text,
             char_count=len(text),
             word_count=len(text.split()),
             summary=summary,
