@@ -1,6 +1,104 @@
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #f5f7fa; /* Легкий сірий фон для краси */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light Theme Defaults */
+    --color-bg: #f8fafc;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f1f5f9;
+    --color-border: #e2e8f0;
+    --color-text: #0f172a;
+    --color-text-muted: #64748b;
+  }
+
+  .dark {
+    /* Dark Theme Defaults */
+    --color-bg: #0f172a;
+    --color-surface: #1e293b;
+    --color-surface-hover: #334155;
+    --color-border: #334155;
+    --color-text: #f8fafc;
+    --color-text-muted: #94a3b8;
+  }
+
+  /* Accent Colors */
+  .theme-blue {
+    --color-accent-50: #eff6ff;
+    --color-accent-100: #dbeafe;
+    --color-accent-500: #3b82f6;
+    --color-accent-600: #2563eb;
+  }
+
+  .theme-purple {
+    --color-accent-50: #faf5ff;
+    --color-accent-100: #f3e8ff;
+    --color-accent-500: #a855f7;
+    --color-accent-600: #9333ea;
+  }
+
+  .theme-orange {
+    --color-accent-50: #fff7ed;
+    --color-accent-100: #ffedd5;
+    --color-accent-500: #f97316;
+    --color-accent-600: #ea580c;
+  }
+
+  .theme-green {
+    --color-accent-50: #f0fdf4;
+    --color-accent-100: #dcfce7;
+    --color-accent-500: #22c55e;
+    --color-accent-600: #16a34a;
+  }
+
+  /* Dark mode accent adjustments if necessary */
+  .dark.theme-blue {
+    --color-accent-50: #1e3a8a;
+    --color-accent-100: #1e40af;
+  }
+  .dark.theme-purple {
+    --color-accent-50: #3b0764;
+    --color-accent-100: #581c87;
+  }
+  .dark.theme-orange {
+    --color-accent-50: #431407;
+    --color-accent-100: #7c2d12;
+  }
+  .dark.theme-green {
+    --color-accent-50: #052e16;
+    --color-accent-100: #14532d;
+  }
+
+  body {
+    @apply bg-background text-text font-sans antialiased transition-colors duration-300;
+  }
+
+  /* Modern Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-textMuted;
+  }
 }
 
+@layer components {
+  /* Utility class to hide scrollbar but keep functionality for textareas */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}

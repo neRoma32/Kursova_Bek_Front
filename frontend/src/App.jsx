@@ -1,6 +1,5 @@
-import { Box, Grid, Typography } from '@mui/material';
 import { useState } from 'react';
-import { Header } from './components/layout/Header';
+import { HeaderTopBar } from './components/layout/HeaderTopBar';
 import { Sidebar } from './components/layout/Sidebar';
 import { EditorArea } from './components/editor/EditorArea';
 import { ResultArea } from './components/result/ResultArea';
@@ -18,49 +17,67 @@ function App() {
     isLoading,
     getStats,
     handleClear,
-    handleCheck,
-    handleAction,
+    handleMainAction,
+    handleResultAction,
     handleFileUploadAction,
-    isTranslationMode,
-    setIsTranslationMode,
+    selectedMode,
+    setSelectedMode,
     outputLang,
     setOutputLang,
     mistakes,
     isAssistantOpen,
     setIsAssistantOpen,
-    applyCorrection
+    applyCorrection,
+    aiAnalysis,
+    assistantResult,
+    isAssistantLoading,
+    handleAssistantDescribe,
+    handleAssistantKeywords,
+    handleAssistantImprove,
+    dismissMistake,
+    history,
+    deleteHistoryItem,
+    clearHistory,
+    loadFromHistory,
   } = useTextAnalyzer();
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f5f5f5' }}>
-      <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-      <Box sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Бокова панель */}
-        {isSidebarOpen && (
-          <Box sx={{ width: '280px', flexShrink: 0, overflowY: 'auto' }}>
+    <div className="h-screen w-full flex flex-col bg-background text-text overflow-hidden">
+      <HeaderTopBar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <div className={`transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} md:relative absolute z-20 h-full flex-shrink-0`}>
+          <div className="w-64 h-full">
             <Sidebar 
               isLoading={isLoading}
               disabled={!inputText}
-              onCheck={handleCheck}
-              onAction={handleAction}
-              isTranslationMode={isTranslationMode}
-              setIsTranslationMode={setIsTranslationMode}
+              selectedMode={selectedMode}
+              setSelectedMode={setSelectedMode}
+              onMainAction={handleMainAction}
               isAssistantOpen={isAssistantOpen}
               setIsAssistantOpen={setIsAssistantOpen}
+              history={history}
+              onDeleteHistoryItem={deleteHistoryItem}
+              onClearHistory={clearHistory}
+              onLoadHistoryItem={loadFromHistory}
             />
-          </Box>
+          </div>
+        </div>
+
+        {/* Backdrop for mobile sidebar */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/20 z-10 md:hidden backdrop-blur-sm"
+            onClick={() => setIsSidebarOpen(false)}
+          />
         )}
 
-      {/* Основна частина */}
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 4 }}>
-        <Typography variant="h4" color="warning.main" gutterBottom sx={{ fontWeight: 'bold' }}>
-          Аналізатор тексту
-        </Typography>
-
-        <Box sx={{ flexGrow: 1, mt: 2 }}>
-          <Box sx={{ display: 'flex', gap: 4, height: '100%', flexDirection: { xs: 'column', md: 'row' } }}>
-            {/* Ліва колонка - Вхідний текст */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
+          <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0">
+            {/* Left Column - Input */}
+            <div className="flex-1 flex flex-col min-w-0 min-h-[400px]">
               <EditorArea
                 text={inputText}
                 setText={setInputText}
@@ -70,11 +87,12 @@ function App() {
                 onFileUploadAction={handleFileUploadAction}
                 mistakes={mistakes}
                 applyCorrection={applyCorrection}
+                dismissMistake={dismissMistake}
               />
-            </Box>
+            </div>
 
-            {/* Права колонка - Результат */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            {/* Middle Column - Result */}
+            <div className="flex-1 flex flex-col min-w-0 min-h-[400px]">
               <ResultArea
                 text={outputText}
                 setText={setOutputText}
@@ -82,24 +100,31 @@ function App() {
                 isLoading={isLoading}
                 outputLang={outputLang}
                 setOutputLang={setOutputLang}
+                selectedMode={selectedMode}
+                onAction={handleResultAction}
               />
-            </Box>
+            </div>
 
-            {/* Третя колонка - Асистент (Панель помилок) */}
-            {isAssistantOpen && (
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, maxWidth: { md: '300px' } }}>
+            {/* Right Column - Assistant */}
+            {isAssistantOpen && selectedMode === 'analyze' && (
+              <div className="w-full lg:w-80 flex-shrink-0 flex flex-col min-h-[400px]">
                 <MistakesPanel 
-                  mistakes={mistakes} 
-                  applyCorrection={applyCorrection}
+                  mistakes={mistakes}
+                  inputText={inputText}
+                  aiAnalysis={aiAnalysis}
+                  assistantResult={assistantResult}
+                  isAssistantLoading={isAssistantLoading}
+                  onDescribe={handleAssistantDescribe}
+                  onKeywords={handleAssistantKeywords}
+                  onImprove={handleAssistantImprove}
                   onClose={() => setIsAssistantOpen(false)}
                 />
-              </Box>
+              </div>
             )}
-          </Box>
-        </Box>
-      </Box>
-      </Box>
-    </Box>
+          </div>
+        </main>
+      </div>
+    </div>
   );
 }
 

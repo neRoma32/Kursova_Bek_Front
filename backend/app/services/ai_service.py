@@ -99,6 +99,40 @@ class AIService:
         )
         return await self._generate(prompt)
     
+    async def analyze_text(self, text: str) -> dict:
+        """Returns dict with style, tonality, complexity as JSON"""
+        prompt = (
+            "Ти лінгвіст-аналітик. Проаналізуй текст і поверни ТІЛЬКИ JSON без пояснень.\n"
+            "Поля:\n"
+            "- style: один з варіантів: 'Офіційний' | 'Нейтральний' | 'Розмовний'\n"
+            "- tonality: один з варіантів: 'Позитивний' | 'Нейтральний' | 'Негативний'\n"
+            "- complexity: рівень за CEFR: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'\n\n"
+            "Відповідь має бути ТІЛЬКИ у форматі: {\"style\": \"...\", \"tonality\": \"...\", \"complexity\": \"...\"}\n\n"
+            f"Текст:\n{text[:2000]}"
+        )
+        raw = await self._generate(prompt)
+        try:
+            import json, re
+            match = re.search(r'\{.*?\}', raw, re.DOTALL)
+            if match:
+                return json.loads(match.group())
+        except Exception:
+            pass
+        return {"style": "Нейтральний", "tonality": "Нейтральний", "complexity": "B1"}
+
+    async def get_keywords(self, text: str) -> str:
+        """Returns comma-separated keywords"""
+        prompt = (
+            "Ти аналітик текстів. Знайди 5-10 ключових слів або словосполучень.\n"
+            "Вимоги:\n"
+            "- лише найважливіші поняття\n"
+            "- та сама мова, що й у тексті\n"
+            "- поверни список через кому, без нумерації\n"
+            "- без пояснень\n\n"
+            f"Текст:\n{text[:2000]}"
+        )
+        return await self._generate(prompt)
+
     async def describe_text(self, text: str) -> str:
         prompt = (
             "Ти аналітик текстів.\n"

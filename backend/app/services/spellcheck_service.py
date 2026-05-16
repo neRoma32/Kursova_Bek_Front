@@ -15,12 +15,28 @@ class SpellCheckService:
         mistakes: List[Mistake] = []
 
         for match in matches:
+            category = "Лексика"
+            issue_type = getattr(match, 'rule_issue_type', '').lower()
+            lt_category = getattr(match, 'category', '').lower()
+            
+            if 'misspelling' in issue_type or 'орфографія' in lt_category or 'spelling' in lt_category:
+                category = "Орфографія"
+            elif 'typographical' in issue_type or 'punctuation' in lt_category or 'пунктуація' in lt_category:
+                category = "Пунктуація"
+            elif 'grammar' in issue_type or 'граматика' in lt_category:
+                category = "Граматика"
+            elif 'style' in issue_type or 'стилістика' in lt_category:
+                category = "Стилістика"
+            elif 'duplication' in issue_type or 'повтор' in lt_category:
+                category = "Повтори слів"
+
             mistakes.append(
                 Mistake(
                     message=match.message,
                     suggestions=match.replacements[:5],
                     offset=match.offset,
-                    length=match.error_length
+                    length=match.error_length,
+                    category=category
                 )
             )
 

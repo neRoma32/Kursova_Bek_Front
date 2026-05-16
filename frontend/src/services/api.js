@@ -36,6 +36,14 @@ export const api = {
         const response = await axios.post(`${API_URL}/report/word`, { text }, { responseType: 'blob' });
         return response.data;
     },
+    describeText: async (text) => {
+        const response = await axios.post(`${API_URL}/describe`, { text });
+        return response.data;
+    },
+    getKeywords: async (text) => {
+        const response = await axios.post(`${API_URL}/keywords`, { text });
+        return response.data;
+    },
     analyzeFile: async (file) => {
         const formData = new FormData();
         formData.append('file', file);

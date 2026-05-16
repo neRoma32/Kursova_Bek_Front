@@ -16,7 +16,8 @@ from app.schemas.text import (
     ModifyRequest,
     SpellCheckRequest,
     RewriteRequest,
-    TextRequest
+    TextRequest,
+    AIAnalysisResult
 )
 
 from app.services.ai_service import ai_service
@@ -59,13 +60,24 @@ def make_response(
 @router.post("/check", response_model=DetailedSpellCheckResponse)
 async def check_grammar(request: SpellCheckRequest):
     try:
+        import asyncio
         corrected_text, mistakes_list = spell_service.get_detailed_stats(request.text)
-        style_text = await ai_service.improve_style(request.text)
+        style_text, ai_result_raw = await asyncio.gather(
+            ai_service.improve_style(request.text),
+            ai_service.analyze_text(request.text)
+        )
+
+        ai_analysis = AIAnalysisResult(
+            style=ai_result_raw.get("style", "Нейтральний"),
+            tonality=ai_result_raw.get("tonality", "Нейтральний"),
+            complexity=ai_result_raw.get("complexity", "B1"),
+        )
 
         return DetailedSpellCheckResponse(
             original_text=request.text,
             char_count=len(request.text),
             word_count=len(request.text.split()),
+            ai_analysis=ai_analysis,
             result=SpellCheckResult(
                 corrected=corrected_text,
                 style_improved=style_text,
@@ -91,6 +103,26 @@ async def check_grammar_fast(request: SpellCheckRequest):
     except Exception as e:
         logger.exception("Fast spell check failed")
         raise HTTPException(status_code=500, detail="Fast spell check error")
+
+
+@router.post("/describe", response_model=TextResponse)
+async def describe_text(request: SpellCheckRequest):
+    try:
+        result = await ai_service.describe_text(request.text)
+        return make_response(request.text, result, "describe")
+    except Exception:
+        logger.exception("Describe failed")
+        raise HTTPException(status_code=500, detail="Describe error")
+
+
+@router.post("/keywords", response_model=TextResponse)
+async def get_keywords(request: SpellCheckRequest):
+    try:
+        result = await ai_service.get_keywords(request.text)
+        return make_response(request.text, result, "keywords")
+    except Exception:
+        logger.exception("Keywords failed")
+        raise HTTPException(status_code=500, detail="Keywords error")
 
 
 @router.post("/translate", response_model=TextResponse)

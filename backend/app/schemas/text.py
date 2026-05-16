@@ -6,11 +6,17 @@ class Mistake(BaseModel):
     suggestions: List[str]
     offset: int
     length: int
+    category: str = "Інше"
 
 class SpellCheckResult(BaseModel):
     corrected: str
     style_improved: str
     mistakes: List[Mistake]
+
+class AIAnalysisResult(BaseModel):
+    style: str
+    tonality: str
+    complexity: str
 
 class DetailedSpellCheckResponse(BaseModel):
     original_text: str
@@ -18,6 +24,7 @@ class DetailedSpellCheckResponse(BaseModel):
     action: str = "check"
     char_count: int
     word_count: int
+    ai_analysis: Optional[AIAnalysisResult] = None
 
 class FastSpellCheckResponse(BaseModel):
     mistakes: List[Mistake]
