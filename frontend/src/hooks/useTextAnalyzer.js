@@ -21,6 +21,11 @@ export const useTextAnalyzer = () => {
   // Історія запитів
   const { history, addHistoryItem, deleteHistoryItem, clearHistory } = useHistory();
 
+  // Document Viewer States
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [viewMode, setViewMode] = useState('text');
+  const [zoom, setZoom] = useState(1.0);
+
   const getStats = (text) => {
     const chars = text.length;
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -34,6 +39,9 @@ export const useTextAnalyzer = () => {
     setIgnoredMistakes([]);
     setAiAnalysis(null);
     setAssistantResult(null);
+    setUploadedFile(null);
+    setViewMode('text');
+    setZoom(1.0);
   };
 
   // Завантажити з історії
@@ -275,6 +283,14 @@ export const useTextAnalyzer = () => {
 
   const handleFileUploadAction = async (file) => {
     setIsLoading(true);
+    const fileType = file.name.toLowerCase().endsWith('.docx') ? 'docx' : 'pdf';
+    setUploadedFile({ name: file.name, type: fileType, file });
+    
+    // Auto-detect mobile screens to default to Text View
+    const isMobile = window.innerWidth < 768;
+    setViewMode(isMobile ? 'text' : 'document');
+    setZoom(1.0);
+
     try {
       const data = await api.analyzeFile(file);
       setInputText(data.original_text);
@@ -284,6 +300,8 @@ export const useTextAnalyzer = () => {
     } catch (error) {
       console.error('Error analyzing file:', error);
       alert('Помилка аналізу файлу');
+      setUploadedFile(null);
+      setViewMode('text');
     } finally {
       setIsLoading(false);
     }
@@ -325,6 +343,7 @@ export const useTextAnalyzer = () => {
     mistakes, isAssistantOpen, setIsAssistantOpen, applyCorrection, dismissMistake,
     aiAnalysis, assistantResult, isAssistantLoading,
     handleAssistantDescribe, handleAssistantKeywords, handleAssistantImprove,
-    history, deleteHistoryItem, clearHistory, loadFromHistory
+    history, deleteHistoryItem, clearHistory, loadFromHistory,
+    uploadedFile, setUploadedFile, viewMode, setViewMode, zoom, setZoom
   };
 };

@@ -1,28 +1,24 @@
 import { useState, useEffect } from 'react';
-
-const HISTORY_KEY = 'textAnalyzerHistory';
+import { useAuth } from '../context/AuthContext';
 
 export const useHistory = () => {
-  const [history, setHistory] = useState(() => {
-    try {
-      const storedHistory = localStorage.getItem(HISTORY_KEY);
-      if (storedHistory) {
-        return JSON.parse(storedHistory);
-      }
-    } catch (error) {
-      console.error('Failed to load history from localStorage', error);
-    }
-    return [];
-  });
+  const { currentUser } = useAuth();
+  
+  // Scoping history under current user ID, fallback to guest history
+  const historyKey = currentUser ? `textAnalyzerHistory_${currentUser.id}` : 'textAnalyzerHistory_guest';
 
-  // Save history to localStorage whenever it changes
+  const [history, setHistory] = useState([]);
+
+  // Load history whenever the logged-in user changes
   useEffect(() => {
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      const storedHistory = localStorage.getItem(historyKey);
+      setHistory(storedHistory ? JSON.parse(storedHistory) : []);
     } catch (error) {
-      console.error('Failed to save history to localStorage', error);
+      console.error('Failed to load history from localStorage', error);
+      setHistory([]);
     }
-  }, [history]);
+  }, [historyKey]);
 
   const addHistoryItem = (item) => {
     const newItem = {
@@ -33,17 +29,35 @@ export const useHistory = () => {
     
     setHistory((prev) => {
       const newHistory = [newItem, ...prev];
-      // Keep only the last 50 items to prevent localStorage overflow
-      return newHistory.slice(0, 50);
+      const sliced = newHistory.slice(0, 50); // Keep only the last 50 items
+      try {
+        localStorage.setItem(historyKey, JSON.stringify(sliced));
+      } catch (error) {
+        console.error('Failed to save history to localStorage', error);
+      }
+      return sliced;
     });
   };
 
   const deleteHistoryItem = (id) => {
-    setHistory((prev) => prev.filter(item => item.id !== id));
+    setHistory((prev) => {
+      const newHistory = prev.filter(item => item.id !== id);
+      try {
+        localStorage.setItem(historyKey, JSON.stringify(newHistory));
+      } catch (error) {
+        console.error('Failed to save history to localStorage', error);
+      }
+      return newHistory;
+    });
   };
 
   const clearHistory = () => {
     setHistory([]);
+    try {
+      localStorage.setItem(historyKey, JSON.stringify([]));
+    } catch (error) {
+      console.error('Failed to clear history in localStorage', error);
+    }
   };
 
   return {

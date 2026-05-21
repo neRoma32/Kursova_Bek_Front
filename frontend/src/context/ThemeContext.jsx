@@ -25,6 +25,35 @@ export const ThemeProvider = ({ children }) => {
     // Save to localStorage
     localStorage.setItem('themeMode', theme);
     localStorage.setItem('themeAccent', accentColor);
+
+    // Sync theme settings to active user profile
+    try {
+      const currentUserStr = localStorage.getItem('textAnalyzer_currentUser') || sessionStorage.getItem('textAnalyzer_currentUser');
+      if (currentUserStr) {
+        const currentUser = JSON.parse(currentUserStr);
+        if (currentUser.themeMode !== theme || currentUser.themeAccent !== accentColor) {
+          currentUser.themeMode = theme;
+          currentUser.themeAccent = accentColor;
+          
+          // Save back to active session
+          if (localStorage.getItem('textAnalyzer_currentUser')) {
+            localStorage.setItem('textAnalyzer_currentUser', JSON.stringify(currentUser));
+          } else {
+            sessionStorage.setItem('textAnalyzer_currentUser', JSON.stringify(currentUser));
+          }
+          
+          // Save back to users list
+          const usersStr = localStorage.getItem('textAnalyzer_users');
+          if (usersStr) {
+            const users = JSON.parse(usersStr);
+            const updatedUsers = users.map(u => u.id === currentUser.id ? { ...u, themeMode: theme, themeAccent: accentColor } : u);
+            localStorage.setItem('textAnalyzer_users', JSON.stringify(updatedUsers));
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error syncing theme settings to current user profile', e);
+    }
   }, [theme, accentColor]);
 
   const toggleTheme = () => {
@@ -36,7 +65,7 @@ export const ThemeProvider = ({ children }) => {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, accentColor, changeAccent }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, accentColor, setAccentColor, changeAccent }}>
       {children}
     </ThemeContext.Provider>
   );

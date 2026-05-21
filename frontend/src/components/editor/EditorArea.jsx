@@ -1,14 +1,32 @@
-import { useRef, useState, useEffect } from 'react';
-import { Trash2, Copy, FileText, Download, CheckSquare } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Trash2, Copy, FileText } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { DocumentViewer } from './DocumentViewer';
 
-export const EditorArea = ({ text, setText, stats, onClear, isLoading, onFileUploadAction, mistakes = [], applyCorrection, dismissMistake }) => {
+export const EditorArea = ({ 
+  text, 
+  setText, 
+  stats, 
+  onClear, 
+  isLoading, 
+  onFileUploadAction, 
+  mistakes = [], 
+  applyCorrection, 
+  dismissMistake,
+  // Document Viewer Props
+  uploadedFile,
+  viewMode,
+  setViewMode,
+  zoom,
+  setZoom
+}) => {
   const textFieldRef = useRef(null);
   const backdropRef = useRef(null);
   const closeTimer = useRef(null);
 
   const [popoverState, setPopoverState] = useState({ open: false, top: 0, left: 0 });
   const [activeMistake, setActiveMistake] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handlePaste = async () => {
     try {
@@ -33,7 +51,12 @@ export const EditorArea = ({ text, setText, stats, onClear, isLoading, onFileUpl
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.name.endsWith('.txt')) {
+    processFile(file);
+    e.target.value = null;
+  };
+
+  const processFile = (file) => {
+    if (file.name.toLowerCase().endsWith('.txt')) {
       const reader = new FileReader();
       reader.onload = (event) => {
         setText(event.target.result);
@@ -43,14 +66,32 @@ export const EditorArea = ({ text, setText, stats, onClear, isLoading, onFileUpl
         alert('Помилка читання файлу');
       };
       reader.readAsText(file);
-    } else if (file.name.endsWith('.docx') || file.name.endsWith('.pdf')) {
+    } else if (file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.pdf')) {
       if (onFileUploadAction) {
         onFileUploadAction(file);
       }
     } else {
       alert('Непідтримуваний формат файлу. Використовуйте .txt, .docx або .pdf');
     }
-    e.target.value = null;
+  };
+
+  // Drag and Drop Handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      processFile(file);
+    }
   };
 
   const handleScroll = (e) => {
@@ -132,40 +173,84 @@ export const EditorArea = ({ text, setText, stats, onClear, isLoading, onFileUpl
     return parts;
   };
 
-  return (
-    <div className="flex flex-col h-full bg-surface rounded-2xl shadow-soft border border-border p-4 transition-colors duration-300">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-lg font-semibold text-text">Вхідний текст</h3>
-        <select disabled className="bg-surfaceHover border border-border rounded-lg px-3 py-1 text-sm text-textMuted outline-none appearance-none">
-          <option>Автовизначення</option>
-        </select>
+  // Editor content element (used directly or as children of DocumentViewer)
+  const renderEditorContent = () => (
+    <div className="relative w-full h-full min-h-[350px] bg-surface rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-accent-500 focus-within:border-transparent transition-all">
+      {/* Textarea */}
+      <textarea
+        ref={textFieldRef}
+        className="absolute inset-0 w-full h-full p-4 font-sans text-base leading-relaxed whitespace-pre-wrap break-words bg-transparent text-text resize-none outline-none overflow-y-auto z-0"
+        placeholder="Введіть текст..."
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          handleClosePopover();
+        }}
+        onScroll={handleScroll}
+      />
+
+      {/* Backdrop for highlights (Must be IN FRONT of textarea to catch hover events) */}
+      <div
+        ref={backdropRef}
+        className="absolute inset-0 p-4 font-sans text-base leading-relaxed whitespace-pre-wrap break-words text-transparent pointer-events-none overflow-y-auto no-scrollbar z-10"
+      >
+        {renderHighlights()}
       </div>
+    </div>
+  );
 
-      <div className="relative flex-grow min-h-[350px] bg-surface rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-accent-500 focus-within:border-transparent transition-all">
-        {/* Textarea */}
-        <textarea
-          ref={textFieldRef}
-          className="absolute inset-0 w-full h-full p-4 font-sans text-base leading-relaxed whitespace-pre-wrap break-words bg-transparent text-text resize-none outline-none overflow-y-auto z-0"
-          placeholder="Введіть текст..."
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            handleClosePopover();
-          }}
-          onScroll={handleScroll}
-        />
-
-        {/* Backdrop for highlights (Must be IN FRONT of textarea to catch hover events) */}
-        <div
-          ref={backdropRef}
-          className="absolute inset-0 p-4 font-sans text-base leading-relaxed whitespace-pre-wrap break-words text-transparent pointer-events-none overflow-y-auto no-scrollbar z-10"
+  return (
+    <div 
+      className="flex flex-col h-full bg-surface rounded-2xl shadow-soft border border-border p-4 transition-colors duration-300 relative"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* File Drag and Drop Overlay */}
+      {isDragging && (
+        <div 
+          className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm border-2 border-dashed border-accent-500 rounded-2xl m-2 transition-all"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
-          {renderHighlights()}
+          <div className="p-4 bg-accent-100 dark:bg-accent-950/50 text-accent-600 rounded-full mb-3 animate-bounce">
+            <FileText className="w-10 h-10" />
+          </div>
+          <p className="text-base font-bold text-text mb-1">Перетягніть файл сюди</p>
+          <p className="text-xs text-textMuted">Підтримуються формати .txt, .docx, .pdf</p>
         </div>
+      )}
+
+      {/* Main Viewport */}
+      <div className="flex-grow flex flex-col min-h-0">
+        {uploadedFile ? (
+          <DocumentViewer
+            uploadedFile={uploadedFile}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            zoom={zoom}
+            setZoom={setZoom}
+            onFallbackTextMode={() => setViewMode('text')}
+          >
+            {renderEditorContent()}
+          </DocumentViewer>
+        ) : (
+          <>
+            {/* Header controls (only if no file loaded, otherwise DocumentViewer shows its tab menu) */}
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-semibold text-text">Вхідний текст</h3>
+              <select disabled className="bg-surfaceHover border border-border rounded-lg px-3 py-1 text-sm text-textMuted outline-none appearance-none">
+                <option>Автовизначення</option>
+              </select>
+            </div>
+            {renderEditorContent()}
+          </>
+        )}
       </div>
 
       {/* Mistake Popover */}
-      {popoverState.open && activeMistake && (
+      {popoverState.open && activeMistake && (!uploadedFile || viewMode === 'text') && (
         <div
           className="fixed z-[1300] bg-surface border border-border rounded-xl shadow-soft-dark p-3 min-w-[220px]"
           style={{ top: popoverState.top + 8, left: popoverState.left }}
@@ -210,7 +295,6 @@ export const EditorArea = ({ text, setText, stats, onClear, isLoading, onFileUpl
                 if (dismissMistake && activeMistake) dismissMistake(activeMistake.offset);
                 handleClosePopover();
               }}
-              startIcon={<Trash2 className="w-4 h-4" />}
               className="mt-1 w-full justify-start text-textMuted"
             >
               Ігнорувати
@@ -230,14 +314,13 @@ export const EditorArea = ({ text, setText, stats, onClear, isLoading, onFileUpl
             size="sm" 
             onClick={() => document.getElementById('hidden-file-input').click()} 
             disabled={isLoading} 
-            startIcon={<FileText className="w-4 h-4" />}
           >
             Файл
           </Button>
-          <Button variant="outline" size="sm" onClick={handlePaste} disabled={isLoading}>Вставити</Button>
-          <Button variant="outline" size="sm" onClick={handleSelectAll} disabled={!text}>Виділити</Button>
-          <Button variant="outline" size="sm" onClick={handleCopy} disabled={!text} startIcon={<Copy className="w-4 h-4" />}>Копіювати</Button>
-          <Button variant="danger" size="sm" onClick={onClear} disabled={isLoading || !text} startIcon={<Trash2 className="w-4 h-4" />}>Очистити</Button>
+          <Button variant="outline" size="sm" onClick={handlePaste} disabled={isLoading || (uploadedFile && viewMode === 'document')}>Вставити</Button>
+          <Button variant="outline" size="sm" onClick={handleSelectAll} disabled={!text || (uploadedFile && viewMode === 'document')}>Виділити</Button>
+          <Button variant="outline" size="sm" onClick={handleCopy} disabled={!text || (uploadedFile && viewMode === 'document')}>Копіювати</Button>
+          <Button variant="danger" size="sm" onClick={onClear} disabled={isLoading || (!text && !uploadedFile)}>Очистити</Button>
         </div>
       </div>
     </div>

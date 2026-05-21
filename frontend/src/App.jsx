@@ -1,12 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { HeaderTopBar } from './components/layout/HeaderTopBar';
 import { Sidebar } from './components/layout/Sidebar';
 import { EditorArea } from './components/editor/EditorArea';
 import { ResultArea } from './components/result/ResultArea';
 import { MistakesPanel } from './components/result/MistakesPanel';
 import { useTextAnalyzer } from './hooks/useTextAnalyzer';
+import { Login } from './components/auth/Login';
+import { Register } from './components/auth/Register';
+import { ForgotPassword } from './components/auth/ForgotPassword';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { useAuth } from './context/AuthContext';
+import { useTheme } from './context/ThemeContext';
 
-function App() {
+function MainAnalyzerApp() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const {
@@ -39,6 +46,11 @@ function App() {
     deleteHistoryItem,
     clearHistory,
     loadFromHistory,
+    uploadedFile,
+    viewMode,
+    setViewMode,
+    zoom,
+    setZoom
   } = useTextAnalyzer();
 
   return (
@@ -88,6 +100,11 @@ function App() {
                 mistakes={mistakes}
                 applyCorrection={applyCorrection}
                 dismissMistake={dismissMistake}
+                uploadedFile={uploadedFile}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                zoom={zoom}
+                setZoom={setZoom}
               />
             </div>
 
@@ -125,6 +142,44 @@ function App() {
         </main>
       </div>
     </div>
+  );
+}
+
+function App() {
+  const { currentUser } = useAuth();
+  const { setTheme, setAccentColor } = useTheme();
+
+  // Load and apply user preferences (theme mode and accent color) upon login
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.themeMode) {
+        setTheme(currentUser.themeMode);
+      }
+      if (currentUser.themeAccent) {
+        setAccentColor(currentUser.themeAccent);
+      }
+    }
+  }, [currentUser, setTheme, setAccentColor]);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Guest only access routes */}
+        <Route element={<ProtectedRoute guestOnly={true} />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+        </Route>
+
+        {/* Authenticated only access routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<MainAnalyzerApp />} />
+        </Route>
+
+        {/* Fallback wildcard router */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
