@@ -141,7 +141,7 @@ export const MistakesPanel = ({
             onClick={onImprove}
             disabled={!hasText || isAssistantLoading}
           >
-            Покращити текст → Результат
+            Покращити текст
           </Button>
         </div>
 

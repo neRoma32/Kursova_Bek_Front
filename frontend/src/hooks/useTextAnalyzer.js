@@ -3,8 +3,30 @@ import { api } from '../services/api';
 import { useHistory } from './useHistory';
 
 export const useTextAnalyzer = () => {
-  const [inputText, setInputText] = useState('');
-  const [outputText, setOutputText] = useState('');
+  const [inputText, setInputTextRaw] = useState('');
+  const [outputText, setOutputTextRaw] = useState('');
+
+  const setInputText = (value) => {
+    if (typeof value === 'function') {
+      setInputTextRaw((prev) => {
+        const res = value(prev);
+        return typeof res === 'string' ? res.replace(/\r\n/g, '\n') : res;
+      });
+    } else {
+      setInputTextRaw(typeof value === 'string' ? value.replace(/\r\n/g, '\n') : value);
+    }
+  };
+
+  const setOutputText = (value) => {
+    if (typeof value === 'function') {
+      setOutputTextRaw((prev) => {
+        const res = value(prev);
+        return typeof res === 'string' ? res.replace(/\r\n/g, '\n') : res;
+      });
+    } else {
+      setOutputTextRaw(typeof value === 'string' ? value.replace(/\r\n/g, '\n') : value);
+    }
+  };
   const [isLoading, setIsLoading] = useState(false);
   
   const [selectedMode, setSelectedMode] = useState('analyze');
@@ -19,12 +41,13 @@ export const useTextAnalyzer = () => {
   const [isAssistantLoading, setIsAssistantLoading] = useState(false);
 
   // Історія запитів
-  const { history, addHistoryItem, deleteHistoryItem, clearHistory } = useHistory();
+  const { history, addHistoryItem, deleteHistoryItem, clearHistory } = useHistory(selectedMode);
 
   // Document Viewer States
   const [uploadedFile, setUploadedFile] = useState(null);
   const [viewMode, setViewMode] = useState('text');
   const [zoom, setZoom] = useState(1.0);
+  const [lastInputText, setLastInputText] = useState(null);
 
   const getStats = (text) => {
     const chars = text.length;
@@ -33,6 +56,7 @@ export const useTextAnalyzer = () => {
   };
 
   const handleClear = () => {
+    setLastInputText(inputText);
     setInputText('');
     setOutputText('');
     setMistakes([]);
@@ -42,6 +66,14 @@ export const useTextAnalyzer = () => {
     setUploadedFile(null);
     setViewMode('text');
     setZoom(1.0);
+  };
+
+  const handleUndo = () => {
+    if (lastInputText !== null) {
+      const current = inputText;
+      setInputText(lastInputText);
+      setLastInputText(current);
+    }
   };
 
   // Завантажити з історії
@@ -191,20 +223,78 @@ export const useTextAnalyzer = () => {
     try {
       const data = await api.checkGrammar(inputText);
       const newOutput = data.result.style_improved;
-      setOutputText(newOutput);
+      
+      setLastInputText(inputText);
+      
+      addHistoryItem({
+        mode: selectedMode,
+        actionLabel: '📝 Оригінал до покращення',
+        inputText: inputText,
+        outputText: outputText,
+        aiAnalysis: aiAnalysis,
+        mistakes: mistakes,
+        assistantResult: assistantResult
+      });
+
+      if (selectedMode === 'analyze') {
+        setInputText(newOutput);
+      } else {
+        setOutputText(newOutput);
+      }
       
       addHistoryItem({
         mode: selectedMode,
         actionLabel: '✨ Покращення',
-        inputText: inputText,
-        outputText: newOutput,
+        inputText: selectedMode === 'analyze' ? newOutput : inputText,
+        outputText: selectedMode === 'analyze' ? outputText : newOutput,
         aiAnalysis: aiAnalysis,
         mistakes: mistakes,
         assistantResult: assistantResult
       });
     } catch (error) {
       console.error(error);
-      setOutputText("Помилка покращення тексту.");
+      if (selectedMode === 'analyze') {
+        alert("Помилка покращення тексту.");
+      } else {
+        setOutputText("Помилка покращення тексту.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditorAction = async (actionFunction, actionLabel) => {
+    if (!inputText.trim()) return;
+    setLastInputText(inputText);
+    
+    addHistoryItem({
+      mode: selectedMode,
+      actionLabel: `📝 Оригінал до ${actionLabel.toLowerCase()}`,
+      inputText: inputText,
+      outputText: outputText,
+      aiAnalysis: aiAnalysis,
+      mistakes: mistakes,
+      assistantResult: assistantResult
+    });
+
+    setIsLoading(true);
+    try {
+      const data = await actionFunction(inputText);
+      const newInputText = data.processed_text;
+      setInputText(newInputText);
+      
+      addHistoryItem({
+        mode: selectedMode,
+        actionLabel: actionLabel,
+        inputText: newInputText,
+        outputText: outputText,
+        aiAnalysis: aiAnalysis,
+        mistakes: mistakes,
+        assistantResult: assistantResult
+      });
+    } catch (error) {
+      console.error(error);
+      alert("Помилка обробки тексту.");
     } finally {
       setIsLoading(false);
     }
@@ -308,6 +398,7 @@ export const useTextAnalyzer = () => {
   };
 
   const applyCorrection = (mistake, suggestion) => {
+    setLastInputText(inputText);
     const { offset, length } = mistake;
     const newText = inputText.substring(0, offset) + suggestion + inputText.substring(offset + length);
     setInputText(newText);
@@ -344,6 +435,7 @@ export const useTextAnalyzer = () => {
     aiAnalysis, assistantResult, isAssistantLoading,
     handleAssistantDescribe, handleAssistantKeywords, handleAssistantImprove,
     history, deleteHistoryItem, clearHistory, loadFromHistory,
-    uploadedFile, setUploadedFile, viewMode, setViewMode, zoom, setZoom
+    uploadedFile, setUploadedFile, viewMode, setViewMode, zoom, setZoom,
+    lastInputText, handleUndo, handleEditorAction
   };
 };

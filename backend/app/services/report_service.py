@@ -16,16 +16,16 @@ class ReportService:
 
         #заголовок
         pdf.set_font("Helvetica", style="B", size=16)
-        pdf.cell(0, 10, text=safe_title, new_x="LMARGIN", new_y="NEXT", align="C")
+        pdf.cell(0, 10, safe_title, 0, 1, "C")
         pdf.ln(10)
 
         pdf.set_font("Helvetica", size=12)
-        pdf.cell(0, 10, text=f"Characters: {len(text)}", new_x="LMARGIN", new_y="NEXT")
-        pdf.cell(0, 10, text=f"Words: {len(text.split())}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 10, f"Characters: {len(text)}", 0, 1)
+        pdf.cell(0, 10, f"Words: {len(text.split())}", 0, 1)
         pdf.ln(10)
     
         pdf.set_font("Helvetica", size=11)
-        pdf.multi_cell(0, 10, text=safe_text)
+        pdf.multi_cell(0, 10, safe_text)
 
         #збереження
         temp_dir = "temp_reports"

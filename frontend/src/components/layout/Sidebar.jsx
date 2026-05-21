@@ -57,10 +57,7 @@ export const Sidebar = ({
         </h2>
         {visibleHistory.length > 0 && (
           <button 
-            onClick={() => {
-              // Only clear history for the currently selected mode
-              visibleHistory.forEach(item => onDeleteHistoryItem(item.id));
-            }}
+            onClick={onClearHistory}
             className="text-textMuted hover:text-red-500 transition-colors p-1"
             title="Очистити історію"
           >

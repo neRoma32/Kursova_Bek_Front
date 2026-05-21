@@ -50,7 +50,10 @@ function MainAnalyzerApp() {
     viewMode,
     setViewMode,
     zoom,
-    setZoom
+    setZoom,
+    lastInputText,
+    handleUndo,
+    handleEditorAction
   } = useTextAnalyzer();
 
   return (
@@ -105,26 +108,32 @@ function MainAnalyzerApp() {
                 setViewMode={setViewMode}
                 zoom={zoom}
                 setZoom={setZoom}
+                selectedMode={selectedMode}
+                onAction={handleEditorAction}
+                onUndo={handleUndo}
+                canUndo={lastInputText !== null}
               />
             </div>
 
             {/* Middle Column - Result */}
-            <div className="flex-1 flex flex-col min-w-0 min-h-[400px]">
-              <ResultArea
-                text={outputText}
-                setText={setOutputText}
-                stats={getStats(outputText)}
-                isLoading={isLoading}
-                outputLang={outputLang}
-                setOutputLang={setOutputLang}
-                selectedMode={selectedMode}
-                onAction={handleResultAction}
-              />
-            </div>
+            {selectedMode !== 'analyze' && (
+              <div className="flex-1 flex flex-col min-w-0 min-h-[400px]">
+                <ResultArea
+                  text={outputText}
+                  setText={setOutputText}
+                  stats={getStats(outputText)}
+                  isLoading={isLoading}
+                  outputLang={outputLang}
+                  setOutputLang={setOutputLang}
+                  selectedMode={selectedMode}
+                  onAction={handleResultAction}
+                />
+              </div>
+            )}
 
             {/* Right Column - Assistant */}
             {isAssistantOpen && selectedMode === 'analyze' && (
-              <div className="w-full lg:w-80 flex-shrink-0 flex flex-col min-h-[400px]">
+              <div className="w-full lg:w-[420px] flex-shrink-0 flex flex-col min-h-[400px]">
                 <MistakesPanel 
                   mistakes={mistakes}
                   inputText={inputText}

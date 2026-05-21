@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
-import { Trash2, Copy, FileText } from 'lucide-react';
+import { Trash2, Copy, FileText, Undo2, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { DocumentViewer } from './DocumentViewer';
+import { ResultActionsPanel } from '../result/ResultActionsPanel';
+import { api } from '../../services/api';
 
 export const EditorArea = ({ 
   text, 
@@ -18,7 +20,12 @@ export const EditorArea = ({
   viewMode,
   setViewMode,
   zoom,
-  setZoom
+  setZoom,
+  // Analyze Mode features
+  selectedMode,
+  onAction,
+  onUndo,
+  canUndo
 }) => {
   const textFieldRef = useRef(null);
   const backdropRef = useRef(null);
@@ -27,6 +34,36 @@ export const EditorArea = ({
   const [popoverState, setPopoverState] = useState({ open: false, top: 0, left: 0 });
   const [activeMistake, setActiveMistake] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const downloadFile = async (type) => {
+    if (!text) return;
+    setIsDownloading(type);
+    try {
+      let blob;
+      let filename;
+      if (type === 'pdf') {
+        blob = await api.getReportPdf(text);
+        filename = 'AI_Report.pdf';
+      } else {
+        blob = await api.getReportWord(text);
+        filename = 'AI_Report.docx';
+      }
+      
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error(`Error downloading ${type}:`, error);
+      alert(`Помилка завантаження ${type} звіту`);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const handlePaste = async () => {
     try {
@@ -175,11 +212,17 @@ export const EditorArea = ({
 
   // Editor content element (used directly or as children of DocumentViewer)
   const renderEditorContent = () => (
-    <div className="relative w-full h-full min-h-[350px] bg-surface rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-accent-500 focus-within:border-transparent transition-all">
+    <div className={`relative w-full h-full min-h-[350px] bg-surface rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-accent-500 focus-within:border-transparent transition-all ${isLoading ? 'opacity-60' : ''}`}>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 bg-background/20 backdrop-blur-[1px]">
+          <Loader2 className="w-8 h-8 text-accent-500 animate-spin" />
+        </div>
+      )}
+
       {/* Textarea */}
       <textarea
         ref={textFieldRef}
-        className="absolute inset-0 w-full h-full p-4 font-sans text-base leading-relaxed whitespace-pre-wrap break-words bg-transparent text-text resize-none outline-none overflow-y-auto z-0"
+        className="absolute inset-0 w-full h-full bg-transparent text-text resize-none outline-none overflow-y-auto overflow-x-hidden no-scrollbar z-0 editor-sync-text"
         placeholder="Введіть текст..."
         value={text}
         onChange={(e) => {
@@ -187,12 +230,13 @@ export const EditorArea = ({
           handleClosePopover();
         }}
         onScroll={handleScroll}
+        disabled={isLoading}
       />
 
       {/* Backdrop for highlights (Must be IN FRONT of textarea to catch hover events) */}
       <div
         ref={backdropRef}
-        className="absolute inset-0 p-4 font-sans text-base leading-relaxed whitespace-pre-wrap break-words text-transparent pointer-events-none overflow-y-auto no-scrollbar z-10"
+        className="absolute inset-0 w-full h-full text-transparent pointer-events-none overflow-y-hidden overflow-x-hidden no-scrollbar z-10 editor-sync-text"
       >
         {renderHighlights()}
       </div>
@@ -303,6 +347,15 @@ export const EditorArea = ({
         </div>
       )}
 
+      {/* Quick Text Actions (Shorten, Expand, Paraphrase) in Analyze Mode */}
+      {selectedMode === 'analyze' && (
+        <ResultActionsPanel 
+          isLoading={isLoading}
+          disabled={!text || (uploadedFile && viewMode === 'document')}
+          onAction={onAction}
+        />
+      )}
+
       {/* Footer controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-4">
         <span className="text-xs font-medium text-textMuted">{stats}</span>
@@ -314,12 +367,46 @@ export const EditorArea = ({
             size="sm" 
             onClick={() => document.getElementById('hidden-file-input').click()} 
             disabled={isLoading} 
+            startIcon={<FileText className="w-4 h-4" />}
           >
             Файл
           </Button>
           <Button variant="outline" size="sm" onClick={handlePaste} disabled={isLoading || (uploadedFile && viewMode === 'document')}>Вставити</Button>
           <Button variant="outline" size="sm" onClick={handleSelectAll} disabled={!text || (uploadedFile && viewMode === 'document')}>Виділити</Button>
-          <Button variant="outline" size="sm" onClick={handleCopy} disabled={!text || (uploadedFile && viewMode === 'document')}>Копіювати</Button>
+          <Button variant="outline" size="sm" onClick={handleCopy} disabled={!text}>Копіювати</Button>
+          {selectedMode === 'analyze' && (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => downloadFile('pdf')} 
+                disabled={isDownloading || !text} 
+                startIcon={isDownloading === 'pdf' ? <Loader2 className="w-4 h-4 animate-spin text-red-500" /> : <FileText className="w-4 h-4 text-red-500" />}
+              >
+                PDF
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => downloadFile('word')} 
+                disabled={isDownloading || !text} 
+                startIcon={isDownloading === 'word' ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : <FileText className="w-4 h-4 text-blue-500" />}
+              >
+                Word
+              </Button>
+            </>
+          )}
+          {canUndo && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onUndo} 
+              disabled={isLoading}
+              startIcon={<Undo2 className="w-4 h-4" />}
+            >
+              Скасувати
+            </Button>
+          )}
           <Button variant="danger" size="sm" onClick={onClear} disabled={isLoading || (!text && !uploadedFile)}>Очистити</Button>
         </div>
       </div>

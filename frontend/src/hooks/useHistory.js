@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-export const useHistory = () => {
+export const useHistory = (mode = 'analyze') => {
   const { currentUser } = useAuth();
   
-  // Scoping history under current user ID, fallback to guest history
-  const historyKey = currentUser ? `textAnalyzerHistory_${currentUser.id}` : 'textAnalyzerHistory_guest';
+  // Scoping history under current user ID and mode, fallback to guest history
+  const historyKey = currentUser 
+    ? `textAnalyzerHistory_${mode}_${currentUser.id}` 
+    : `textAnalyzerHistory_${mode}_guest`;
 
   const [history, setHistory] = useState([]);
 
