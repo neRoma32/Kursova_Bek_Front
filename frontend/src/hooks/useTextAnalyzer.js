@@ -39,12 +39,18 @@ export const useTextAnalyzer = () => {
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [assistantResult, setAssistantResult] = useState(null); 
   const [isAssistantLoading, setIsAssistantLoading] = useState(false);
+  const [currentTitle, setCurrentTitle] = useState(null);
 
   // Історія запитів
   const { history, addHistoryItem, deleteHistoryItem, clearHistory } = useHistory(selectedMode);
 
   // Document Viewer States
   const [uploadedFile, setUploadedFile] = useState(null);
+  const uploadedFileRef = useRef(null);
+  useEffect(() => {
+    uploadedFileRef.current = uploadedFile;
+  }, [uploadedFile]);
+
   const [viewMode, setViewMode] = useState('text');
   const [zoom, setZoom] = useState(1.0);
   const [lastInputText, setLastInputText] = useState(null);
@@ -66,6 +72,8 @@ export const useTextAnalyzer = () => {
     setUploadedFile(null);
     setViewMode('text');
     setZoom(1.0);
+    setCurrentTitle(null);
+    setIsLoading(false);
   };
 
   const handleUndo = () => {
@@ -84,6 +92,7 @@ export const useTextAnalyzer = () => {
     setAiAnalysis(item.aiAnalysis || null);
     setMistakes(item.mistakes || []);
     setIgnoredMistakes([]);
+    setCurrentTitle(item.title || null);
     
     if (item.assistantResult) {
       setIsAssistantOpen(true);
@@ -111,6 +120,7 @@ export const useTextAnalyzer = () => {
           analysisData = data.ai_analysis;
           setAiAnalysis(analysisData);
         }
+        setCurrentTitle(data.title || null);
         // Save to history
         addHistoryItem({
           mode: 'analyze',
@@ -118,18 +128,23 @@ export const useTextAnalyzer = () => {
           inputText,
           outputText: finalOutput,
           aiAnalysis: analysisData,
-          mistakes: finalMistakes
+          mistakes: finalMistakes,
+          title: data.title || null
         });
       } else if (selectedMode === 'translate') {
         const data = await api.translate(inputText, outputLang);
         finalOutput = data.processed_text;
         setOutputText(finalOutput);
         
+        if (data.corrected_text && data.corrected_text !== inputText) {
+          setInputText(data.corrected_text);
+        }
+        
         // Save to history
         addHistoryItem({
           mode: 'translate',
-          actionLabel: '🌐 Переклад',
-          inputText,
+          actionLabel: '🌐  Переклад',
+          inputText: data.corrected_text || inputText,
           outputText: finalOutput,
         });
       }
@@ -155,7 +170,8 @@ export const useTextAnalyzer = () => {
         inputText: inputText,
         outputText: newOutput,
         aiAnalysis: aiAnalysis,
-        mistakes: mistakes
+        mistakes: mistakes,
+        title: currentTitle
       });
     } catch (error) {
       console.error(error);
@@ -167,6 +183,10 @@ export const useTextAnalyzer = () => {
 
   const handleAssistantDescribe = async () => {
     if (!inputText.trim()) return;
+    if (inputText.length > 5000) {
+      alert("Текст занадто довгий для обробки (ліміт 5000 символів)");
+      return;
+    }
     setIsAssistantLoading(true);
     setAssistantResult(null);
     try {
@@ -181,7 +201,8 @@ export const useTextAnalyzer = () => {
         outputText: outputText,
         aiAnalysis: aiAnalysis,
         mistakes: mistakes,
-        assistantResult: result
+        assistantResult: result,
+        title: currentTitle
       });
     } catch (error) {
       console.error(error);
@@ -193,6 +214,10 @@ export const useTextAnalyzer = () => {
 
   const handleAssistantKeywords = async () => {
     if (!inputText.trim()) return;
+    if (inputText.length > 5000) {
+      alert("Текст занадто довгий для обробки (ліміт 5000 символів)");
+      return;
+    }
     setIsAssistantLoading(true);
     setAssistantResult(null);
     try {
@@ -207,7 +232,8 @@ export const useTextAnalyzer = () => {
         outputText: outputText,
         aiAnalysis: aiAnalysis,
         mistakes: mistakes,
-        assistantResult: result
+        assistantResult: result,
+        title: currentTitle
       });
     } catch (error) {
       console.error(error);
@@ -219,6 +245,10 @@ export const useTextAnalyzer = () => {
 
   const handleAssistantImprove = async () => {
     if (!inputText.trim()) return;
+    if (inputText.length > 5000) {
+      alert("Текст занадто довгий для обробки (ліміт 5000 символів)");
+      return;
+    }
     setIsLoading(true);
     try {
       const data = await api.checkGrammar(inputText);
@@ -233,7 +263,8 @@ export const useTextAnalyzer = () => {
         outputText: outputText,
         aiAnalysis: aiAnalysis,
         mistakes: mistakes,
-        assistantResult: assistantResult
+        assistantResult: assistantResult,
+        title: currentTitle
       });
 
       if (selectedMode === 'analyze') {
@@ -249,7 +280,8 @@ export const useTextAnalyzer = () => {
         outputText: selectedMode === 'analyze' ? outputText : newOutput,
         aiAnalysis: aiAnalysis,
         mistakes: mistakes,
-        assistantResult: assistantResult
+        assistantResult: assistantResult,
+        title: currentTitle
       });
     } catch (error) {
       console.error(error);
@@ -265,6 +297,10 @@ export const useTextAnalyzer = () => {
 
   const handleEditorAction = async (actionFunction, actionLabel) => {
     if (!inputText.trim()) return;
+    if (inputText.length > 5000) {
+      alert("Текст занадто довгий для обробки (ліміт 5000 символів)");
+      return;
+    }
     setLastInputText(inputText);
     
     addHistoryItem({
@@ -274,7 +310,8 @@ export const useTextAnalyzer = () => {
       outputText: outputText,
       aiAnalysis: aiAnalysis,
       mistakes: mistakes,
-      assistantResult: assistantResult
+      assistantResult: assistantResult,
+      title: currentTitle
     });
 
     setIsLoading(true);
@@ -290,7 +327,8 @@ export const useTextAnalyzer = () => {
         outputText: outputText,
         aiAnalysis: aiAnalysis,
         mistakes: mistakes,
-        assistantResult: assistantResult
+        assistantResult: assistantResult,
+        title: currentTitle
       });
     } catch (error) {
       console.error(error);
@@ -301,8 +339,8 @@ export const useTextAnalyzer = () => {
   };
 
   useEffect(() => {
-    if (selectedMode !== 'analyze' || !inputText.trim()) {
-      if (!inputText.trim() || selectedMode !== 'analyze') {
+    if (selectedMode !== 'analyze' || !inputText.trim() || inputText.length > 5000) {
+      if (!inputText.trim() || selectedMode !== 'analyze' || inputText.length > 5000) {
         setMistakes([]);
         if (!inputText.trim()) setIgnoredMistakes([]);
       }
@@ -337,22 +375,31 @@ export const useTextAnalyzer = () => {
 
     const translateTimeout = setTimeout(async () => {
       if (inputText.trim()) {
+        if (inputText.length > 5000) {
+          setOutputText("Помилка: перевищено ліміт 5000 символів.");
+          return;
+        }
         setIsLoading(true);
         try {
           const data = await api.translate(inputText, outputLang);
           const finalOutput = data.processed_text;
           setOutputText(finalOutput);
+          
+          if (data.corrected_text && data.corrected_text !== inputText) {
+            setInputText(data.corrected_text);
+          }
 
           // Зберігаємо в історію, якщо текст довший за 10 символів і переклад не пустий
           if (inputText.trim().length > 10 && finalOutput) {
+            const finalInput = data.corrected_text || inputText;
             const translateHistory = historyRef.current.filter(h => h.mode === 'translate');
             const lastTranslate = translateHistory[0];
             
             // Запобігаємо дублям
-            if (!lastTranslate || lastTranslate.inputText !== inputText) {
+            if (!lastTranslate || lastTranslate.inputText !== finalInput) {
               addHistoryItem({
                 mode: 'translate',
-                inputText,
+                inputText: finalInput,
                 outputText: finalOutput,
               });
             }
@@ -373,6 +420,7 @@ export const useTextAnalyzer = () => {
 
   const handleFileUploadAction = async (file) => {
     setIsLoading(true);
+    setSelectedMode('analyze');
     const fileType = file.name.toLowerCase().endsWith('.docx') ? 'docx' : 'pdf';
     setUploadedFile({ name: file.name, type: fileType, file });
     
@@ -383,17 +431,30 @@ export const useTextAnalyzer = () => {
 
     try {
       const data = await api.analyzeFile(file);
+      
+      // If the upload was cancelled or replaced in the meantime, abort state updates
+      if (!uploadedFileRef.current || uploadedFileRef.current.name !== file.name) {
+        return;
+      }
+
+      if (data.original_text.length >= 5000) {
+        alert("Зверніть увагу: завантажений файл містить більше 5000 символів. Для стабільної роботи системи оброблено лише перші 5000 символів.");
+      }
       setInputText(data.original_text);
       setOutputText(data.spellcheck.style_improved + "\n\n--- Короткий зміст ---\n" + data.summary);
       setMistakes(data.spellcheck.mistakes || []);
       setIgnoredMistakes([]);
     } catch (error) {
       console.error('Error analyzing file:', error);
-      alert('Помилка аналізу файлу');
-      setUploadedFile(null);
-      setViewMode('text');
+      if (uploadedFileRef.current && uploadedFileRef.current.name === file.name) {
+        alert('Помилка аналізу файлу');
+        setUploadedFile(null);
+        setViewMode('text');
+      }
     } finally {
-      setIsLoading(false);
+      if (uploadedFileRef.current && uploadedFileRef.current.name === file.name) {
+        setIsLoading(false);
+      }
     }
   };
 

@@ -59,12 +59,15 @@ def make_response(
 # Routes
 @router.post("/check", response_model=DetailedSpellCheckResponse)
 async def check_grammar(request: SpellCheckRequest):
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text exceeds 5000 characters limit")
     try:
         import asyncio
         corrected_text, mistakes_list = spell_service.get_detailed_stats(request.text)
-        style_text, ai_result_raw = await asyncio.gather(
+        style_text, ai_result_raw, title = await asyncio.gather(
             ai_service.improve_style(request.text),
-            ai_service.analyze_text(request.text)
+            ai_service.analyze_text(request.text),
+            ai_service.generate_title(request.text)
         )
 
         ai_analysis = AIAnalysisResult(
@@ -78,6 +81,7 @@ async def check_grammar(request: SpellCheckRequest):
             char_count=len(request.text),
             word_count=len(request.text.split()),
             ai_analysis=ai_analysis,
+            title=title,
             result=SpellCheckResult(
                 corrected=corrected_text,
                 style_improved=style_text,
@@ -92,6 +96,8 @@ async def check_grammar(request: SpellCheckRequest):
 
 @router.post("/check/fast", response_model=FastSpellCheckResponse)
 async def check_grammar_fast(request: SpellCheckRequest):
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text exceeds 5000 characters limit")
     try:
         corrected_text, mistakes_list = spell_service.get_detailed_stats(request.text)
 
@@ -107,6 +113,8 @@ async def check_grammar_fast(request: SpellCheckRequest):
 
 @router.post("/describe", response_model=TextResponse)
 async def describe_text(request: SpellCheckRequest):
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text exceeds 5000 characters limit")
     try:
         result = await ai_service.describe_text(request.text)
         return make_response(request.text, result, "describe")
@@ -117,6 +125,8 @@ async def describe_text(request: SpellCheckRequest):
 
 @router.post("/keywords", response_model=TextResponse)
 async def get_keywords(request: SpellCheckRequest):
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text exceeds 5000 characters limit")
     try:
         result = await ai_service.get_keywords(request.text)
         return make_response(request.text, result, "keywords")
@@ -127,9 +137,17 @@ async def get_keywords(request: SpellCheckRequest):
 
 @router.post("/translate", response_model=TextResponse)
 async def translate_text(request: TranslateRequest):
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text exceeds 5000 characters limit")
     try:
         result = await ai_service.translate(request.text, request.target_language)
-        return make_response(request.text, result, "translate")
+        
+        translated_text = result.get("translated", "")
+        corrected_text = result.get("corrected", request.text)
+        
+        response = make_response(request.text, translated_text, "translate")
+        response.corrected_text = corrected_text
+        return response
 
     except Exception as e:
         logger.exception("Translate failed")
@@ -138,6 +156,8 @@ async def translate_text(request: TranslateRequest):
 
 @router.post("/summarize", response_model=TextResponse)
 async def summarize_text(request: ModifyRequest):
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text exceeds 5000 characters limit")
     try:
         result = await ai_service.summarize(request.text, request.percentage)
         return make_response(request.text, result, "summarize")
@@ -149,6 +169,8 @@ async def summarize_text(request: ModifyRequest):
 
 @router.post("/expand", response_model=TextResponse)
 async def expand_text(request: ModifyRequest):
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text exceeds 5000 characters limit")
     try:
         result = await ai_service.expand(request.text, request.percentage)
         return make_response(request.text, result, "expand")
@@ -160,6 +182,8 @@ async def expand_text(request: ModifyRequest):
 
 @router.post("/rewrite", response_model=TextResponse)
 async def rewrite_text(request: RewriteRequest):
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text exceeds 5000 characters limit")
     try:
         result = await ai_service.rewrite(request.text)
         return make_response(request.text, result, "rewrite")
@@ -174,6 +198,8 @@ async def get_pdf_report(
     request: TextRequest,
     background_tasks: BackgroundTasks
 ):
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text exceeds 5000 characters limit")
     try:
         if request.custom_title and request.custom_title.strip():
             title = request.custom_title
@@ -200,6 +226,8 @@ async def get_word_report(
     request: TextRequest,
     background_tasks: BackgroundTasks
 ):
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text exceeds 5000 characters limit")
     try:
         if request.custom_title and request.custom_title.strip():
             title = request.custom_title
@@ -255,6 +283,10 @@ async def analyze_file(file: UploadFile = File(...)):
 
         if not text.strip():
             raise HTTPException(status_code=400, detail="Document is empty")
+
+        # Обмежуємо довжину тексту до 5000 символів
+        if len(text) > 5000:
+            text = text[:5000]
 
         # spellcheck
         corrected_text, mistakes = spell_service.get_detailed_stats(text)

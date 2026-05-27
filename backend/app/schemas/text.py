@@ -25,6 +25,7 @@ class DetailedSpellCheckResponse(BaseModel):
     char_count: int
     word_count: int
     ai_analysis: Optional[AIAnalysisResult] = None
+    title: Optional[str] = None
 
 class FastSpellCheckResponse(BaseModel):
     mistakes: List[Mistake]
@@ -37,6 +38,7 @@ class TextResponse(BaseModel):
     char_count: int
     word_count: int
     error_count: int = 0
+    corrected_text: Optional[str] = None
 
 class TranslateRequest(BaseModel):
     text: str

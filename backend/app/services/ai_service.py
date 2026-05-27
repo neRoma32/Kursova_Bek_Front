@@ -24,18 +24,32 @@ class AIService:
         )
         return await self._generate(prompt)
 
-    async def translate(self, text: str, target_lang: str) -> str:
+    async def translate(self, text: str, target_lang: str) -> dict:
         prompt = (
-            f"Ти професійний перекладач.\n"
-            f"Завдання: переклади текст на мову: {target_lang}.\n"
-            "Вимоги:\n"
-            "- збережи сенс і стиль\n"
-            "- не скорочуй і не розширюй текст\n"
-            "- не додавай пояснень\n"
-            "Поверни лише перекладений текст без лапок.\n\n"
+            "Ти професійний перекладач і редактор.\n"
+            "Завдання:\n"
+            "1. Виправ нескладні помилки, описки чи пропущені розділові знаки в оригінальному тексті (мова оригіналу визначається автоматично).\n"
+            f"2. Переклади цей виправлений оригінальний текст на мову: {target_lang}.\n\n"
+            "Вимоги до відповіді:\n"
+            "Поверни результат ТІЛЬКИ у форматі JSON з двома ключами:\n"
+            '- "corrected": виправлений текст оригіналу\n'
+            '- "translated": перекладений текст\n'
+            "Відповідь має бути ТІЛЬКИ валідним JSON-об'єктом без будь-яких markdown-тегів (наприклад, без ```json) чи додаткових пояснень.\n\n"
             f"Текст:\n{text}"
         )
-        return await self._generate(prompt)
+        raw = await self._generate(prompt)
+        
+        try:
+            import json, re
+            match = re.search(r'\{.*?\}', raw, re.DOTALL)
+            if match:
+                parsed = json.loads(match.group())
+                if "corrected" in parsed and "translated" in parsed:
+                    return parsed
+        except Exception:
+            pass
+            
+        return {"corrected": text, "translated": raw}
 
     async def summarize(self, text: str, percentage: int = None) -> str:
         reduction = f"приблизно на {percentage}%" if percentage else "коротко і стисло"

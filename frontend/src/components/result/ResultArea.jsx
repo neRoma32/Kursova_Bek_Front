@@ -54,7 +54,17 @@ export const ResultArea = ({ text, setText, stats, isLoading, outputLang, setOut
   return (
     <div className="flex flex-col h-full bg-surface rounded-2xl shadow-soft border border-border p-4 transition-colors duration-300 relative">
       <div className="flex justify-between items-center mb-3">
-        <h3 className="text-lg font-semibold text-green-500">Результат</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-green-500">Результат</h3>
+          {selectedMode === 'translate' && (
+            <span 
+              className="text-[10px] bg-accent-100 text-accent-600 px-1.5 py-0.5 rounded font-semibold cursor-help"
+              title="Нескладні помилки в оригіналі автоматично виправляються під час перекладу"
+            >
+              Автокорекція
+            </span>
+          )}
+        </div>
         <select 
           className="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-text outline-none focus:ring-2 focus:ring-accent-500 transition-all cursor-pointer"
           value={outputLang} 

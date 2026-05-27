@@ -175,6 +175,11 @@ const PdfPage = ({ pdfDoc, pageNum, zoom }) => {
 const DocxViewer = ({ file, zoom, onError }) => {
   const containerRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   useEffect(() => {
     if (!file || !containerRef.current) return;
@@ -201,8 +206,8 @@ const DocxViewer = ({ file, zoom, onError }) => {
         }
       } catch (err) {
         console.error("Error previewing Word document:", err);
-        if (isCurrent && onError) {
-          onError(err);
+        if (isCurrent && onErrorRef.current) {
+          onErrorRef.current(err);
         }
       }
     };
@@ -212,7 +217,7 @@ const DocxViewer = ({ file, zoom, onError }) => {
     return () => {
       isCurrent = false;
     };
-  }, [file, onError]);
+  }, [file]);
 
   return (
     <div className="relative w-full flex justify-center py-6 bg-background/50 min-h-[500px] overflow-x-auto">
@@ -315,6 +320,8 @@ export const DocumentViewer = ({ uploadedFile, viewMode, setViewMode, zoom, setZ
     link.click();
     link.parentNode.removeChild(link);
   };
+
+  if (!uploadedFile) return null;
 
   const hasError = renderError !== null;
 
@@ -431,7 +438,7 @@ export const DocumentViewer = ({ uploadedFile, viewMode, setViewMode, zoom, setZ
 
       {/* Main visual viewport */}
       <div className={`flex-grow overflow-y-auto overflow-x-hidden no-scrollbar ${
-        viewMode === 'document' ? 'bg-slate-100 dark:bg-slate-900/60 p-4 md:p-6' : 'p-0'
+        viewMode === 'text' ? 'flex flex-col p-0' : 'bg-slate-100 dark:bg-slate-900/60 p-4 md:p-6'
       }`}>
         {viewMode === 'text' ? (
           children
@@ -478,7 +485,7 @@ export const DocumentViewer = ({ uploadedFile, viewMode, setViewMode, zoom, setZ
               <DocxViewer 
                 file={uploadedFile.file} 
                 zoom={zoom} 
-                onError={(err) => setRenderError(err)}
+                onError={setRenderError}
               />
             )}
           </>

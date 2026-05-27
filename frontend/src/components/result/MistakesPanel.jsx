@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { 
   X, TrendingUp, ChevronDown, ChevronRight, FileText, 
-  Key, Sparkles, SpellCheck, BrainCircuit, BarChart3, Loader2 
+  Key, Sparkles, SpellCheck, BrainCircuit, BarChart3, Loader2, Copy, Check 
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -80,6 +80,14 @@ export const MistakesPanel = ({
   onImprove,
   onClose,
 }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAssistantResult = () => {
+    if (!assistantResult || !assistantResult.text) return;
+    navigator.clipboard.writeText(assistantResult.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const mistakesByCategory = useMemo(() => {
     const groups = {};
@@ -147,11 +155,26 @@ export const MistakesPanel = ({
 
         {/* Assistant Result */}
         {assistantResult && (
-          <div className={`mx-3 mb-2 p-3 rounded-xl border ${assistantResult.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-            <span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${assistantResult.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>
-              {assistantResult.type === 'keywords' ? '🔑 Ключові слова' : assistantResult.type === 'describe' ? '📄 Короткий опис' : '⚠️ Помилка'}
-            </span>
-            <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
+          <div className={`mx-3 mb-2 p-3 rounded-xl border relative ${assistantResult.type === 'error' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+            <div className="flex justify-between items-center mb-1 pr-6">
+              <span className={`text-xs font-bold uppercase tracking-wider block ${assistantResult.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>
+                {assistantResult.type === 'keywords' ? '🔑 Ключові слова' : assistantResult.type === 'describe' ? '📄 Короткий опис' : '⚠️ Помилка'}
+              </span>
+              {assistantResult.type !== 'error' && (
+                <button
+                  onClick={handleCopyAssistantResult}
+                  className="p-1 rounded-lg text-textMuted hover:text-text hover:bg-black/5 dark:hover:bg-white/5 transition-colors absolute right-2 top-2"
+                  title="Копіювати результат"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+            </div>
+            <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed pr-6 mt-1 font-medium">
               {assistantResult.text}
             </p>
           </div>

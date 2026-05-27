@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Trash2, Copy, FileText, Undo2, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { DocumentViewer } from './DocumentViewer';
@@ -35,6 +35,26 @@ export const EditorArea = ({
   const [activeMistake, setActiveMistake] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  useEffect(() => {
+    const handleWindowResize = () => {
+      handleClosePopover();
+      if (textFieldRef.current && backdropRef.current) {
+        backdropRef.current.scrollTop = textFieldRef.current.scrollTop;
+        backdropRef.current.scrollLeft = textFieldRef.current.scrollLeft;
+      }
+    };
+    window.addEventListener('resize', handleWindowResize);
+    return () => window.removeEventListener('resize', handleWindowResize);
+  }, []);
+
+  // Sync scroll positions when the text content changes to prevent scroll height jumps
+  useEffect(() => {
+    if (textFieldRef.current && backdropRef.current) {
+      backdropRef.current.scrollTop = textFieldRef.current.scrollTop;
+      backdropRef.current.scrollLeft = textFieldRef.current.scrollLeft;
+    }
+  }, [text]);
 
   const downloadFile = async (type) => {
     if (!text) return;
@@ -134,6 +154,7 @@ export const EditorArea = ({
   const handleScroll = (e) => {
     if (backdropRef.current) {
       backdropRef.current.scrollTop = e.target.scrollTop;
+      backdropRef.current.scrollLeft = e.target.scrollLeft;
     }
     handleClosePopover();
   };
@@ -172,7 +193,14 @@ export const EditorArea = ({
   };
 
   const renderHighlights = () => {
-    if (!mistakes || mistakes.length === 0) return text;
+    if (!mistakes || mistakes.length === 0) {
+      return (
+        <>
+          {text}
+          {'\n'}
+        </>
+      );
+    }
 
     const sortedMistakes = [...mistakes].sort((a, b) => a.offset - b.offset);
     const parts = [];
@@ -207,12 +235,16 @@ export const EditorArea = ({
       parts.push(<span key={`text-end`}>{text.substring(lastIndex)}</span>);
     }
 
+    // Always append a trailing newline so that the backdrop div height 
+    // matches the scroll height behavior of the textarea.
+    parts.push(<span key="trailing-newline">{'\n'}</span>);
+
     return parts;
   };
 
   // Editor content element (used directly or as children of DocumentViewer)
   const renderEditorContent = () => (
-    <div className={`relative w-full h-full min-h-[350px] bg-surface rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-accent-500 focus-within:border-transparent transition-all ${isLoading ? 'opacity-60' : ''}`}>
+    <div className={`relative w-full flex-1 min-h-[350px] bg-surface rounded-xl overflow-hidden border border-border focus-within:ring-2 focus-within:ring-accent-500 focus-within:border-transparent transition-all ${isLoading ? 'opacity-60' : ''}`}>
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-20 bg-background/20 backdrop-blur-[1px]">
           <Loader2 className="w-8 h-8 text-accent-500 animate-spin" />
@@ -236,7 +268,7 @@ export const EditorArea = ({
       {/* Backdrop for highlights (Must be IN FRONT of textarea to catch hover events) */}
       <div
         ref={backdropRef}
-        className="absolute inset-0 w-full h-full text-transparent pointer-events-none overflow-y-hidden overflow-x-hidden no-scrollbar z-10 editor-sync-text"
+        className="absolute inset-0 w-full h-full text-transparent pointer-events-none overflow-y-auto overflow-x-hidden no-scrollbar z-10 editor-sync-text"
       >
         {renderHighlights()}
       </div>
@@ -358,7 +390,16 @@ export const EditorArea = ({
 
       {/* Footer controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-4">
-        <span className="text-xs font-medium text-textMuted">{stats}</span>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium ${text.length > 5000 ? 'text-red-500 font-bold animate-pulse' : 'text-textMuted'}`}>
+            {stats} / 5000
+          </span>
+          {text.length > 5000 && (
+            <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-semibold">
+              Перевищено ліміт!
+            </span>
+          )}
+        </div>
         
         <div className="flex flex-wrap items-center gap-2">
           <input id="hidden-file-input" type="file" hidden accept=".txt,.docx,.pdf" onChange={handleFileUpload} disabled={isLoading} />
@@ -407,7 +448,7 @@ export const EditorArea = ({
               Скасувати
             </Button>
           )}
-          <Button variant="danger" size="sm" onClick={onClear} disabled={isLoading || (!text && !uploadedFile)}>Очистити</Button>
+          <Button variant="danger" size="sm" onClick={onClear} disabled={!text && !uploadedFile}>Очистити</Button>
         </div>
       </div>
     </div>

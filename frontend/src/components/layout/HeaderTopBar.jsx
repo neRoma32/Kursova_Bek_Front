@@ -1,4 +1,4 @@
-import { Menu, Moon, Sun, Palette, Wand2, User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, Moon, Sun, Wand2, User, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -12,29 +12,17 @@ export const HeaderTopBar = ({ onToggleSidebar }) => {
   const { currentUser, logout } = useAuth();
   const { showToast } = useToast();
 
-  const [showPalette, setShowPalette] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   
   // Modals state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const paletteRef = useRef(null);
   const userMenuRef = useRef(null);
-
-  const colors = [
-    { name: 'blue', class: 'bg-blue-500' },
-    { name: 'purple', class: 'bg-purple-500' },
-    { name: 'orange', class: 'bg-orange-500' },
-    { name: 'green', class: 'bg-green-500' },
-  ];
 
   // Close menus on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (paletteRef.current && !paletteRef.current.contains(event.target)) {
-        setShowPalette(false);
-      }
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setShowUserMenu(false);
       }
@@ -53,9 +41,9 @@ export const HeaderTopBar = ({ onToggleSidebar }) => {
   const initial = currentUser?.username ? currentUser.username.charAt(0).toUpperCase() : 'U';
 
   return (
-    <header className="h-16 flex items-center justify-between px-4 bg-surface border-b border-border transition-colors duration-300 relative z-30">
+    <header className="h-16 flex items-center justify-between px-4 bg-surface border-b border-border transition-colors duration-300 relative z-50">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="md:hidden">
+        <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
           <Menu className="w-5 h-5" />
         </Button>
         <div className="flex items-center gap-2 text-accent-600">
@@ -67,28 +55,7 @@ export const HeaderTopBar = ({ onToggleSidebar }) => {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Accent Color Palette Selector */}
-        <div ref={paletteRef} className="relative">
-          <Button variant="ghost" size="icon" onClick={() => setShowPalette(!showPalette)} title="Вибрати акцент">
-            <Palette className="w-5 h-5" />
-          </Button>
 
-          {showPalette && (
-            <div className="absolute right-0 mt-2 p-2 bg-surface border border-border rounded-xl shadow-lg flex gap-2 z-50 animate-slide-in">
-              {colors.map(c => (
-                <button
-                  key={c.name}
-                  onClick={() => {
-                    changeAccent(c.name);
-                    setShowPalette(false);
-                  }}
-                  className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${c.class} ${accentColor === c.name ? 'ring-2 ring-offset-2 ring-offset-surface ring-text' : ''}`}
-                  title={c.name}
-                />
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Light/Dark theme selector */}
         <Button variant="ghost" size="icon" onClick={toggleTheme} title="Змінити тему">

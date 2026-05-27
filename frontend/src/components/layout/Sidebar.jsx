@@ -12,7 +12,8 @@ export const Sidebar = ({
   history = [],
   onDeleteHistoryItem,
   onClearHistory,
-  onLoadHistoryItem
+  onLoadHistoryItem,
+  uploadedFile
 }) => {
   const visibleHistory = history.filter(item => item.mode === selectedMode);
 
@@ -38,12 +39,13 @@ export const Sidebar = ({
 
         <button
           onClick={() => setSelectedMode('translate')}
-          disabled={isLoading}
+          disabled={isLoading || !!uploadedFile}
+          title={uploadedFile ? "Переклад недоступний при роботі з файлами" : ""}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-left ${
             selectedMode === 'translate'
               ? 'bg-accent-50 text-accent-600 font-medium'
               : 'text-text hover:bg-surfaceHover'
-          }`}
+          } ${uploadedFile ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <Languages className="w-5 h-5" />
           <span>Переклад</span>
@@ -75,13 +77,16 @@ export const Sidebar = ({
               key={item.id}
               className="group flex items-center justify-between p-2 rounded-lg hover:bg-surfaceHover transition-colors cursor-pointer"
               onClick={() => onLoadHistoryItem(item)}
+              title={item.inputText}
             >
               <div className="flex flex-col overflow-hidden pr-2">
-                <span className="text-xs font-medium text-text truncate">
-                  {item.inputText.substring(0, 25)}{item.inputText.length > 25 ? '...' : ''}
+                <span className="text-xs font-semibold text-text truncate">
+                  {item.title || item.actionLabel || (item.mode === 'analyze' ? 'Аналіз' : 'Переклад')}
                 </span>
-                <span className="text-[10px] text-textMuted">
-                  {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {item.actionLabel || (item.mode === 'analyze' ? 'Аналіз' : 'Переклад')}
+                <span className="text-[10px] text-textMuted truncate">
+                  {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {item.title ? ` • ${item.actionLabel || (item.mode === 'analyze' ? 'Аналіз' : 'Переклад')}` : ''}
+                  {` • ${item.inputText}`}
                 </span>
               </div>
               <button 

@@ -14,7 +14,24 @@ import { useAuth } from './context/AuthContext';
 import { useTheme } from './context/ThemeContext';
 
 function MainAnalyzerApp() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
+
+  // Automatically manage sidebar state when crossing breakpoints
+  useEffect(() => {
+    let prevWidth = window.innerWidth;
+    const handleResize = () => {
+      const currentWidth = window.innerWidth;
+      const wasDesktop = prevWidth >= 768;
+      const isDesktop = currentWidth >= 768;
+      
+      if (wasDesktop !== isDesktop) {
+        setIsSidebarOpen(isDesktop);
+      }
+      prevWidth = currentWidth;
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const {
     inputText,
@@ -60,13 +77,21 @@ function MainAnalyzerApp() {
     <div className="h-screen w-full flex flex-col bg-background text-text overflow-hidden">
       <HeaderTopBar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
       
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative z-10">
+        {/* Backdrop for mobile sidebar */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/20 z-30 md:hidden backdrop-blur-sm"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
         {/* Sidebar */}
-        <div className={`transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} md:relative absolute z-20 h-full flex-shrink-0`}>
+        <div className={`transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:w-0'} md:relative absolute top-0 left-0 z-40 h-full flex-shrink-0 overflow-hidden`}>
           <div className="w-64 h-full">
             <Sidebar 
               isLoading={isLoading}
-              disabled={!inputText}
+              disabled={!inputText || inputText.length > 5000}
               selectedMode={selectedMode}
               setSelectedMode={setSelectedMode}
               onMainAction={handleMainAction}
@@ -76,17 +101,10 @@ function MainAnalyzerApp() {
               onDeleteHistoryItem={deleteHistoryItem}
               onClearHistory={clearHistory}
               onLoadHistoryItem={loadFromHistory}
+              uploadedFile={uploadedFile}
             />
           </div>
         </div>
-
-        {/* Backdrop for mobile sidebar */}
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/20 z-10 md:hidden backdrop-blur-sm"
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
